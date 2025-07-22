@@ -1,6 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const verifyToken = require("../middlewares/auth");
 
 const router = express.Router();
 
@@ -52,8 +54,15 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "1h" }
+    );
+
     res.status(200).json({
       message: "Login Successful",
+      token,
       user: {
         id: user._id,
         username: user.username,
@@ -64,6 +73,13 @@ router.post("/login", async (req, res) => {
     console.error(`Login Error: ${err.message}`);
     res.status(500).json({ message: "Server Error" });
   }
+});
+
+router.get("/profile", verifyToken, (req, res) => {
+  res.json({
+    message: "This is a protected route",
+    user: req.user,
+  });
 });
 
 module.exports = router;
