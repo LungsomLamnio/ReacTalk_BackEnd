@@ -75,11 +75,32 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/profile", verifyToken, (req, res) => {
+router.get("/chat", verifyToken, (req, res) => {
   res.json({
     message: "This is a protected route",
     user: req.user,
   });
+});
+
+router.get("/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "Profile data fetched successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (err) {
+    console.error(`Profile Fetch Error: ${err.message}`);
+    res.status(500).json({ message: "Server Error" });
+  }
 });
 
 module.exports = router;
