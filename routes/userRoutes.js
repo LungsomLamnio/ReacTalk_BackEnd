@@ -98,6 +98,9 @@ router.get("/profile", verifyToken, async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        bio: user.bio,
+        followers: user.followers || [],
+        followings: user.followings || [],
       },
     });
   } catch (err) {
