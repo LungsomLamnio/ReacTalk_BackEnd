@@ -46,7 +46,7 @@ router.post("/login", async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({ message: "User not found" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -67,6 +67,9 @@ router.post("/login", async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        bio: user.bio,
+        followers: user.followers,
+        followings: user.followings,
       },
     });
   } catch (err) {
@@ -99,6 +102,54 @@ router.get("/profile", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error(`Profile Fetch Error: ${err.message}`);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/search/:username", async (req, res) => {
+  try {
+    const username = req.params.username.trim().toLowerCase();
+    const user = await User.findOne({
+      username: { $regex: new RegExp(`^${username}$`, "i") },
+    }).select("_id username");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    return res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.post("/follow/:id", verifyToken, async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.id);
+    const currentUser = await User.findById(req.user.id);
+    console.log(targetUser);
+    console.log(currentUser);
+
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (targetUser._id.equals(currentUser._id)) {
+      return res.status(400).json({ message: "You cannot follow yourself" });
+    }
+
+    if (currentUser.followings.includes(targetUser._id)) {
+      return res.status(400).json({ message: "Already following this user" });
+    }
+
+    currentUser.followings.push(targetUser._id);
+    targetUser.followers.push(currentUser._id);
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.status(200).json({ message: "User followed successfully" });
+  } catch (err) {
     res.status(500).json({ message: "Server Error" });
   }
 });

@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: [true, "Name is required"],
+      unique: true,
       trim: true,
     },
     email: {
@@ -19,13 +20,18 @@ const userSchema = new mongoose.Schema(
       required: [true, "Password is required"],
       minlength: 6,
     },
+    bio: {
+      type: String,
+      trim: true,
+      default: "This is a demo bio",
+    },
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
-    following: [
+    followings: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
