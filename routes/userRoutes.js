@@ -110,6 +110,7 @@ router.get("/profile", verifyToken, async (req, res) => {
 });
 
 router.get("/search/:username", async (req, res) => {
+  console.log("search user route hit");
   try {
     const username = req.params.username.trim().toLowerCase();
     const user = await User.findOne({
