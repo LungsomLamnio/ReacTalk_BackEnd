@@ -146,15 +146,31 @@ router.post("/follow/:id", verifyToken, async (req, res) => {
       return res.status(400).json({ message: "Already following this user" });
     }
 
-    currentUser.followings.push(targetUser._id);
-    targetUser.followers.push(currentUser._id);
-
     await currentUser.save();
     await targetUser.save();
 
     res.status(200).json({ message: "User followed successfully" });
   } catch (err) {
     res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/followings", verifyToken, async (req, res) => {
+  console.log("followings route hit");
+  try {
+    const userID = req.user.id;
+    const user = await User.findById(userID).populate(
+      "followings",
+      "username email bio"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ followings: user.followings });
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    return res.status(500).json({ message: "Server Error" });
   }
 });
 
