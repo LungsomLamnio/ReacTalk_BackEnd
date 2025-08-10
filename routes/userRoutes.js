@@ -156,7 +156,6 @@ router.post("/follow/:id", verifyToken, async (req, res) => {
 });
 
 router.get("/followings", verifyToken, async (req, res) => {
-  console.log("followings route hit");
   try {
     const userID = req.user.id;
     const user = await User.findById(userID).populate(
