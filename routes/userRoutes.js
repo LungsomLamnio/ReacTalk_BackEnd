@@ -110,7 +110,6 @@ router.get("/profile", verifyToken, async (req, res) => {
 });
 
 router.get("/search/:username", async (req, res) => {
-  console.log("search user route hit");
   try {
     const username = req.params.username.trim().toLowerCase();
     const user = await User.findOne({
@@ -131,8 +130,6 @@ router.post("/follow/:id", verifyToken, async (req, res) => {
   try {
     const targetUser = await User.findById(req.params.id);
     const currentUser = await User.findById(req.user.id);
-    console.log(targetUser);
-    console.log(currentUser);
 
     if (!targetUser) {
       return res.status(404).json({ message: "User not found" });
@@ -145,6 +142,9 @@ router.post("/follow/:id", verifyToken, async (req, res) => {
     if (currentUser.followings.includes(targetUser._id)) {
       return res.status(400).json({ message: "Already following this user" });
     }
+
+    currentUser.followings.push(targetUser._id);
+    targetUser.followers.push(currentUser._id);
 
     await currentUser.save();
     await targetUser.save();
