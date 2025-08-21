@@ -155,7 +155,7 @@ router.post("/follow/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/followings", verifyToken, async (req, res) => {
+router.get("/following", verifyToken, async (req, res) => {
   try {
     const userID = req.user.id;
     const user = await User.findById(userID).populate(
@@ -170,6 +170,43 @@ router.get("/followings", verifyToken, async (req, res) => {
   } catch (err) {
     console.error(`Error: ${err.message}`);
     return res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/followers", verifyToken, async (req, res) => {
+  try {
+    const userID = req.user.id;
+    const user = await User.findById(userID).populate(
+      "followers",
+      "username email bio"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ followers: user.followers });
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    return res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/search", async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username) {
+      return res
+        .status(400)
+        .json({ message: "Username query parameter is required" });
+    }
+
+    const user = await User.find({
+      username: { $regex: username, $options: "i" },
+    }).select("username email bio");
+    res.status(200).json({ user });
+  } catch (err) {
+    console.log(`Error: ${err.message}`);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
