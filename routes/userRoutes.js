@@ -3,6 +3,9 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const verifyToken = require("../middlewares/auth");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const router = express.Router();
 
@@ -209,5 +212,74 @@ router.get("/search", async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 });
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, "../uploads/profile-pictures");
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, `${req.user.id}-${Date.now()}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // Limit file size to 2MB
+  fileFilter: function (req, file, cb) {
+    // Accept only image files
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image files are allowed!"));
+    }
+    cb(null, true);
+  },
+});
+
+router.post(
+  "/update-profile",
+  verifyToken,
+  upload.single("profilePicture"),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { username, bio } = req.body;
+      const updateData = { username, bio };
+
+      if (req.file) {
+        // Use relative path accessible by frontend
+        updateData.avatar = `/uploads/profile-pictures/${req.file.filename}`;
+      }
+
+      const user = await User.findByIdAndUpdate(userId, updateData, {
+        new: true,
+        runValidators: true,
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.status(200).json({
+        user: {
+          id: user._id,
+          username: user.username,
+          bio: user.bio,
+          avatar: user.avatar,
+          email: user.email,
+          followers: user.followers,
+          followings: user.followings,
+        },
+        message: "Profile updated successfully",
+      });
+    } catch (err) {
+      console.error("Error updating profile:", err.message);
+      res.status(500).json({ message: "Server error: " + err.message });
+    }
+  }
+);
 
 module.exports = router;

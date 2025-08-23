@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "This is a demo bio",
     },
+    avatar: {
+      type: String,
+      default: "",
+    },
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
