@@ -102,6 +102,7 @@ router.get("/profile", verifyToken, async (req, res) => {
         username: user.username,
         email: user.email,
         bio: user.bio,
+        avatar: user.avatar,
         followers: user.followers || [],
         followings: user.followings || [],
       },
@@ -229,9 +230,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // Limit file size to 2MB
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: function (req, file, cb) {
-    // Accept only image files
     if (!file.mimetype.startsWith("image/")) {
       return cb(new Error("Only image files are allowed!"));
     }
@@ -250,7 +250,6 @@ router.post(
       const updateData = { username, bio };
 
       if (req.file) {
-        // Use relative path accessible by frontend
         updateData.avatar = `/uploads/profile-pictures/${req.file.filename}`;
       }
 
