@@ -36,7 +36,7 @@ const upload = multer({
 router.post("/signup", userController.signup);
 router.post("/login", userController.login);
 router.get("/profile", verifyToken, userController.getProfile);
-router.get("/search/:username", userController.searchUserByUsername);
+router.get("/search/:username", userController.searchUsers);
 router.post("/follow/:id", verifyToken, userController.followUser);
 router.get("/following", verifyToken, userController.getFollowings);
 router.get("/followers", verifyToken, userController.getFollowers);

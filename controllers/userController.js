@@ -97,18 +97,22 @@ exports.getProfile = async (req, res) => {
 };
 
 // Search user by username controller
-exports.searchUserByUsername = async (req, res) => {
+exports.searchUsers = async (req, res) => {
   try {
-    const username = req.params.username.trim().toLowerCase();
-    const user = await User.findOne({
-      username: { $regex: new RegExp(`^${username}$`, "i") },
-    }).select("_id username");
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    const { username } = req.query;
+    if (!username) {
+      return res
+        .status(400)
+        .json({ message: "Username query parameter is required" });
     }
-    res.json({ user });
+
+    const users = await User.find({
+      username: { $regex: username, $options: "i" },
+    }).select("username email bio");
+
+    res.status(200).json({ users });
   } catch (err) {
-    console.error("Search User Error:", err.message);
+    console.error("Search Users Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 };
