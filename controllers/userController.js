@@ -105,12 +105,25 @@ exports.searchUsers = async (req, res) => {
         .status(400)
         .json({ message: "Username query parameter is required" });
     }
+    const currentUserId = req.user.id; // from verifyToken middleware
 
+    // Find users matching search
     const users = await User.find({
       username: { $regex: username, $options: "i" },
-    }).select("username email bio");
+    }).select("username email bio followers");
 
-    res.status(200).json({ users });
+    // Map and check if current user already follows them
+    const usersWithFollowStatus = users.map((user) => ({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      bio: user.bio,
+      isFollowed: user.followers.some((followerId) =>
+        followerId.equals(currentUserId)
+      ),
+    }));
+
+    res.status(200).json({ users: usersWithFollowStatus });
   } catch (err) {
     console.error("Search Users Error:", err.message);
     res.status(500).json({ message: "Server Error" });
@@ -122,19 +135,30 @@ exports.followUser = async (req, res) => {
   try {
     const targetUser = await User.findById(req.params.id);
     const currentUser = await User.findById(req.user.id);
+
     if (!targetUser) {
       return res.status(404).json({ message: "User not found" });
     }
+
     if (targetUser._id.equals(currentUser._id)) {
       return res.status(400).json({ message: "You cannot follow yourself" });
     }
+
+    // Prevent duplicate follow
     if (currentUser.followings.includes(targetUser._id)) {
       return res.status(400).json({ message: "Already following this user" });
     }
+
+    // Add current user to target's followers only if not already present
+    if (!targetUser.followers.includes(currentUser._id)) {
+      targetUser.followers.push(currentUser._id);
+    }
+
     currentUser.followings.push(targetUser._id);
-    targetUser.followers.push(currentUser._id);
+
     await currentUser.save();
     await targetUser.save();
+
     res.status(200).json({ message: "User followed successfully" });
   } catch (err) {
     console.error("Follow User Error:", err.message);
@@ -156,17 +180,17 @@ exports.unfollowUser = async (req, res) => {
       return res.status(400).json({ message: "You cannot unfollow yourself" });
     }
 
-    // Check if currently following
+    // Check currentUser is following targetUser
     if (!currentUser.followings.includes(targetUser._id)) {
       return res.status(400).json({ message: "You do not follow this user" });
     }
 
-    // Remove followed user from currentUser's followings
+    // Remove targetUser from currentUser.followings
     currentUser.followings = currentUser.followings.filter(
       (id) => !id.equals(targetUser._id)
     );
 
-    // Remove currentUser from targetUser's followers
+    // Remove currentUser from targetUser.followers
     targetUser.followers = targetUser.followers.filter(
       (id) => !id.equals(currentUser._id)
     );
@@ -211,25 +235,6 @@ exports.getFollowers = async (req, res) => {
     res.status(200).json({ followers: user.followers });
   } catch (err) {
     console.error("Get Followers Error:", err.message);
-    res.status(500).json({ message: "Server Error" });
-  }
-};
-
-// Search users controller
-exports.searchUsers = async (req, res) => {
-  try {
-    const { username } = req.query;
-    if (!username) {
-      return res
-        .status(400)
-        .json({ message: "Username query parameter is required" });
-    }
-    const users = await User.find({
-      username: { $regex: username, $options: "i" },
-    }).select("username email bio");
-    res.status(200).json({ users });
-  } catch (err) {
-    console.error("Search Users Error:", err.message);
     res.status(500).json({ message: "Server Error" });
   }
 };
